@@ -174,10 +174,10 @@ const ProjectForm = () => {
 
             <Button
               className={cn(
-                "size-8 rounded-full",
+                "size-8 rounded-full"
                 // isButtonDisabled && "bg-muted-foreground border"
               )}
-            //   disabled={isButtonDisabled}
+              //   disabled={isButtonDisabled}
               type="submit"
             >
               <ArrowUpIcon className="size-4" />
