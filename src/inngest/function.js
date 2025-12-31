@@ -10,6 +10,8 @@ import z from "zod";
 import { PROMPT } from "@/prompt";
 import { lastAssistantTextMessageContent } from "./utils";
 import { openai } from "@inngest/agent-kit";
+import { MessageRole, MessageType } from "@prisma/client";
+import db from "@/lib/db";
 
 export const codeAgentFunction = inngest.createFunction(
   { id: "code-agent" },
@@ -171,12 +173,41 @@ export const codeAgentFunction = inngest.createFunction(
       return `http://${host}`;
     });
 
+    await step.run("save-results", async () => {
+      if (isError) {
+        return await db.message.create({
+          data: {
+            projectId: event.data.projectId,
+            content:
+              "Sorry, something went wrong while processing your request.",
+            role: MessageRole.ASSISTANT,
+            type: MessageType.ERROR,
+          },
+        });
+      }
+
+      return await db.message.create({
+        data: {
+          projectId: event.data.projectId,
+          content: result.state.data.summary,
+          role: MessageRole.ASSISTANT,
+          type: MessageType.RESULT,
+          fragments: {
+            create: {
+              sandboxUrl: sandboxUrl,
+              title: "Untitled",
+              files: result.state.data.files,
+            },
+          },
+        },
+      });
+    });
+
     return {
       url: sandboxUrl,
       title: "Untitled",
-      files: result.state.data.files || {},
-      summary: result.state.data.summary || "",
-      error: isError ? "The agent failed to produce a result." : null,
+      files: result.state.data.files,
+      summary: result.state.data.summary,
     };
   }
 );
