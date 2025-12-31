@@ -12,8 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Form, FormField } from "@/components/ui/form";
-// import { onInvoke } from "../actions";
-// import { useCreateProject } from "@/modules/projects/hooks/project";
+import { useCreateProject } from "@/modules/projects/hooks/project";
 
 const formSchema = z.object({
   content: z
@@ -73,31 +72,40 @@ const PROJECT_TEMPLATES = [
   },
 ];
 
-const ProjectForm = () => {
+const ProjectsForm = () => {
   const [isFocused, setIsFocused] = useState(false);
   const router = useRouter();
+  const { mutateAsync, isPending } = useCreateProject();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       content: "",
     },
-    // mode:"onChange"
+    mode: "onChange",
   });
 
   const handleTemplate = (prompt) => {
     form.setValue("content", prompt);
-    // setIsFocused(true);
   };
 
-  const onSubmit = (data) => {
+  const onSubmit = async (values) => {
     try {
-      console.log(data);
-      // Handle form submission logic here
-    } catch (error) {}
+      const res = await mutateAsync(values.content);
+      router.push(`/projects/${res.id}`);
+      toast.success("Project created successfully");
+      form.reset();
+    } catch (error) {
+      toast.error(error.message || "Failed to create project");
+    }
   };
+
+  const isButtonDisabled = isPending || !form.watch("content").trim();
+
   return (
     <div className="space-y-8">
+      {/* Template Grid */}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {PROJECT_TEMPLATES.map((template, index) => (
           <button
@@ -134,7 +142,7 @@ const ProjectForm = () => {
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           className={cn(
-            "relative border  p-4 pt-1 rounded-xl bg-sidebar dark:bg-sidebar transition-all",
+            "relative border p-4 pt-1 rounded-xl bg-sidebar dark:bg-sidebar transition-all",
             isFocused && "shadow-lg ring-2 ring-primary/20"
           )}
         >
@@ -152,7 +160,7 @@ const ProjectForm = () => {
                 maxRows={8}
                 className={cn(
                   "pt-4 resize-none border-none w-full outline-none bg-transparent"
-                  //   isPending && "opacity-50"
+                    // isPending && "opacity-50"
                 )}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -171,16 +179,15 @@ const ProjectForm = () => {
               </kbd>
               &nbsp; to submit
             </div>
-
             <Button
               className={cn(
-                "size-8 rounded-full"
-                // isButtonDisabled && "bg-muted-foreground border"
+                "size-8 rounded-full",
+                isButtonDisabled && "bg-muted-foreground border"
               )}
-              //   disabled={isButtonDisabled}
+              disabled={isButtonDisabled}
               type="submit"
             >
-              <ArrowUpIcon className="size-4" />
+              {isPending ? <Spinner /> : <ArrowUpIcon className="size-4" />}
             </Button>
           </div>
         </form>
@@ -189,4 +196,4 @@ const ProjectForm = () => {
   );
 };
 
-export default ProjectForm;
+export default ProjectsForm;
